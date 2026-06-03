@@ -10,10 +10,25 @@ public class Customer extends AppUser {
         setStatus(UserStatus.ACTIVE);
     }
 
-    public Customer(int id, String name, String email, String password,
-                    String phone, UserStatus status) {
-        super(id, name, email, password, phone, UserRole.USER, status);
-    }
+    public Customer(
+        int id,
+        String name,
+        String email,
+        String password,
+        String phone,
+        UserStatus status
+    ) {
+
+    super(
+        id,
+        name,
+        email,
+        password,
+        phone,
+        UserRole.USER,
+        status    
+    );
+}
 
     @Override
     public String getDashboardName() {

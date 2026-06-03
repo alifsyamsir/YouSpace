@@ -2,249 +2,812 @@ package youspace.view.admin;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+
 import javafx.scene.Scene;
+
 import javafx.scene.control.*;
+
 import javafx.scene.control.cell.PropertyValueFactory;
+
 import javafx.scene.layout.*;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+
 import javafx.stage.Stage;
+
 import youspace.dao.UserDAO;
 import youspace.dao.VenueDAO;
+
 import youspace.enums.BookingStatus;
+
 import youspace.models.AppUser;
 import youspace.models.Booking;
 import youspace.models.Venue;
+
 import youspace.service.BookingService;
+import youspace.utils.ViewUtil;
 
 import java.text.NumberFormat;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class BookingAdminView {
 
     private final Stage stage;
+
     private final BookingService bookingService;
+
     private final UserDAO userDAO;
+
     private final VenueDAO venueDAO;
-    
+
     private TableView<Booking> tableView;
+
     private TextField tfSearch;
 
     public BookingAdminView(Stage stage) {
+
         this.stage = stage;
-        this.bookingService = new BookingService();
-        this.userDAO = new UserDAO();   // Digunakan untuk lookup nama user berdasarkan user_id
-        this.venueDAO = new VenueDAO(); // Digunakan untuk lookup nama venue berdasarkan venue_id
+
+        this.bookingService =
+                new BookingService();
+
+        this.userDAO =
+                new UserDAO();
+
+        this.venueDAO =
+                new VenueDAO();
+
+        // AUTO COMPLETE BOOKING
+        bookingService.autoCompleteBookings();
     }
 
     public Scene createScene() {
-        BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color: #F8F9FA;");
 
-        // Memanggil sidebar reusable milikmu
-        SidebarAdmin sidebar = new SidebarAdmin(stage, "Booking");
-        root.setLeft(sidebar);
+        BorderPane root =
+                new BorderPane();
 
-        VBox mainContent = new VBox(20);
-        mainContent.setPadding(new Insets(35, 40, 35, 40));
+        root.setStyle(
+                "-fx-background-color:#F8F9FA;"
+        );
 
-        // Header & Search Bar
-        HBox headerRow = new HBox();
-        headerRow.setAlignment(Pos.CENTER_LEFT);
+        root.setLeft(
+                new SidebarAdmin(
+                        stage,
+                        "Booking"
+                )
+        );
 
-        Label txtHeader = new Label("Kelola Booking");
-        txtHeader.setFont(Font.font("System", FontWeight.BOLD, 26));
-        txtHeader.setStyle("-fx-text-fill: #1A202C;");
+        VBox mainContent =
+                new VBox(25);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        mainContent.setPadding(
+                new Insets(35)
+        );
 
-        tfSearch = new TextField();
-        tfSearch.setPromptText("🔍 Cari Nama User / Acara...");
+        // ======================================================
+        // HEADER
+        // ======================================================
+
+        HBox headerRow =
+                new HBox();
+
+        headerRow.setAlignment(
+                Pos.CENTER_LEFT
+        );
+
+        Label title =
+                new Label(
+                        "Kelola Booking"
+                );
+
+        title.setFont(
+                Font.font(
+                        "System",
+                        FontWeight.BOLD,
+                        32
+                )
+        );
+
+        title.setStyle(
+                "-fx-text-fill:#1A365D;"
+        );
+
+        Region spacer =
+                new Region();
+
+        HBox.setHgrow(
+                spacer,
+                Priority.ALWAYS
+        );
+
+        tfSearch =
+                new TextField();
+
+        tfSearch.setPromptText(
+                "Cari Nama..."
+        );
+
         tfSearch.setPrefWidth(240);
-        tfSearch.setStyle("-fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-padding: 8 12;");
-        
-        // Fitur pencarian otomatis ketika mengetik text
-        tfSearch.textProperty().addListener((observable, oldValue, newValue) -> {
-            refreshTable(newValue);
-        });
 
-        headerRow.getChildren().addAll(txtHeader, spacer, tfSearch);
-        mainContent.getChildren().add(headerRow);
+        tfSearch.setPrefHeight(42);
 
-        // Setup Tabel Reservasi
-        tableView = new TableView<>();
-        tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tableView.setStyle("-fx-background-radius: 10; -fx-background-color: white; -fx-border-color: #E2E8F0; -fx-border-radius: 10;");
+        tfSearch.setStyle("""
+            -fx-background-radius:12;
+            -fx-border-radius:12;
+            -fx-border-color:#D1D5DB;
+            -fx-background-color:white;
+            -fx-padding:0 15 0 15;
+            -fx-font-size:14;
+        """);
 
-        TableColumn<Booking, Integer> colId = new TableColumn<>("ID");
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colId.setPrefWidth(50);
+        tfSearch.textProperty().addListener(
+                (
+                        observable,
+                        oldValue,
+                        newValue
+                ) -> refreshTable(newValue)
+        );
 
-        // Kolom Relasional: Mengubah ID User menjadi Nama User asli
-        TableColumn<Booking, String> colUser = new TableColumn<>("Nama Pemesan");
-        colUser.setCellFactory(param -> new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                } else {
-                    Booking b = getTableRow().getItem();
-                    AppUser user = userDAO.findById(b.getUserId());
-                    setText(user != null ? user.getName() : "User #" + b.getUserId());
-                }
-            }
-        });
+        headerRow.getChildren().addAll(
+                title,
+                spacer,
+                tfSearch
+        );
 
-        // Kolom Relasional: Mengubah ID Venue menjadi Nama Venue asli
-        TableColumn<Booking, String> colVenue = new TableColumn<>("Venue");
-        colVenue.setCellFactory(param -> new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                } else {
-                    Booking b = getTableRow().getItem();
-                    Venue venue = venueDAO.findById(b.getVenueId());
-                    setText(venue != null ? venue.getName() : "Venue #" + b.getVenueId());
-                }
-            }
-        });
+        // ======================================================
+        // STATISTICS
+        // ======================================================
 
-        TableColumn<Booking, String> colEvent = new TableColumn<>("Nama Acara");
-        colEvent.setCellValueFactory(new PropertyValueFactory<>("eventName"));
+        HBox statsRow =
+                new HBox(20);
 
-        TableColumn<Booking, String> colTanggal = new TableColumn<>("Tanggal");
-        colTanggal.setCellFactory(param -> new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null);
-                } else {
-                    Booking b = getTableRow().getItem();
-                    setText(b.getStartDate() + " s/d " + b.getEndDate());
-                }
-            }
-        });
+        long totalBooking =
+                bookingService
+                        .getAllBookings()
+                        .size();
 
-        // Format Tampilan Harga Ke Rupiah (Rp)
-        TableColumn<Booking, Double> colHarga = new TableColumn<>("Total Harga");
-        colHarga.setCellValueFactory(new PropertyValueFactory<>("totalPrice"));
-        colHarga.setCellFactory(param -> new TableCell<>() {
-            @Override
-            protected void updateItem(Double item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    NumberFormat rupiah = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
-                    setText(rupiah.format(item).replace(",00", ""));
-                }
-            }
-        });
+        long activeBooking =
+                bookingService
+                        .getAllBookings()
+                        .stream()
+                        .filter(
+                                booking ->
+                                        booking.getStatus()
+                                        ==
+                                        BookingStatus.APPROVED
+                        )
+                        .count();
 
-        // Tampilan Badge Status Berwarna (APPROVED, COMPLETED, WAITING_PAYMENT)
-        TableColumn<Booking, BookingStatus> colStatus = new TableColumn<>("Status");
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colStatus.setCellFactory(param -> new TableCell<>() {
-            private final Label badge = new Label();
-            @Override
-            protected void updateItem(BookingStatus item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                } else {
-                    badge.setText(item.name());
-                    if (item == BookingStatus.COMPLETED) {
-                        badge.setStyle("-fx-background-color: #C6F6D5; -fx-text-fill: #22543D; -fx-padding: 4 10; -fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 11;");
-                    } else if (item == BookingStatus.APPROVED) {
-                        badge.setStyle("-fx-background-color: #EBF8FF; -fx-text-fill: #2B6CB0; -fx-padding: 4 10; -fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 11;");
-                    } else if (item == BookingStatus.REJECTED) {
-                        badge.setStyle("-fx-background-color: #FED7D7; -fx-text-fill: #C53030; -fx-padding: 4 10; -fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 11;");
-                    } else {
-                        badge.setStyle("-fx-background-color: #FEFCBF; -fx-text-fill: #744210; -fx-padding: 4 10; -fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 11;");
-                    }
-                    setGraphic(badge);
-                }
-            }
-        });
+        long completedBooking =
+                bookingService
+                        .getAllBookings()
+                        .stream()
+                        .filter(
+                                booking ->
+                                        booking.getStatus()
+                                        ==
+                                        BookingStatus.COMPLETED
+                        )
+                        .count();
 
-        // Kolom Aksi Tombol Selesai
-        TableColumn<Booking, Void> colAksi = new TableColumn<>("Aksi");
-        colAksi.setCellFactory(param -> new TableCell<>() {
-            private final Button btnSelesai = new Button("✓ Selesai");
-            {
-                btnSelesai.setStyle("-fx-background-color: #1A365D; -fx-text-fill: white; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand; -fx-font-size: 11;");
-                btnSelesai.setOnAction(e -> {
-                    Booking selectedBooking = getTableView().getItems().get(getIndex());
-                    
-                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                    alert.setHeaderText(null);
-                    alert.setContentText("Tandai pesanan acara '" + selectedBooking.getEventName() + "' ini sebagai Selesai?");
-                    
-                    Optional<ButtonType> result = alert.showAndWait();
-                    if (result.isPresent() && result.get() == ButtonType.OK) {
-                        // Memanggil metode completeBooking asli milikmu!
-                        boolean sukses = bookingService.completeBooking(selectedBooking.getId());
-                        if (sukses) {
-                            refreshTable(tfSearch.getText());
+        VBox cardAll =
+                createStatCard(
+                        totalBooking,
+                        "Semua Booking",
+                        "#1A365D",
+                        "white"
+                );
+
+        VBox cardActive =
+                createStatCard(
+                        activeBooking,
+                        "Booking Berlangsung",
+                        "#D9EAF7",
+                        "#1A365D"
+                );
+
+        VBox cardDone =
+                createStatCard(
+                        completedBooking,
+                        "Booking Selesai",
+                        "#D9EAF7",
+                        "#1A365D"
+                );
+
+        statsRow.getChildren().addAll(
+                cardAll,
+                cardActive,
+                cardDone
+        );
+
+        // ======================================================
+        // TABLE
+        // ======================================================
+
+        tableView =
+                new TableView<>();
+
+        tableView.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY
+        );
+
+        tableView.setPrefHeight(500);
+
+        tableView.setStyle("""
+            -fx-background-color:white;
+            -fx-background-radius:15;
+            -fx-border-radius:15;
+            -fx-border-color:#E5E7EB;
+        """);
+
+        // ======================================================
+        // NO
+        // ======================================================
+
+        TableColumn<Booking, Integer> colNo =
+                new TableColumn<>("No.");
+
+        colNo.setCellValueFactory(
+                new PropertyValueFactory<>("id")
+        );
+
+        colNo.setMaxWidth(70);
+
+        // ======================================================
+        // USER
+        // ======================================================
+
+        TableColumn<Booking, String> colUser =
+                new TableColumn<>("Nama Pemesan");
+
+        colUser.setCellFactory(param ->
+                new TableCell<>() {
+
+                    @Override
+                    protected void updateItem(
+                            String item,
+                            boolean empty
+                    ) {
+
+                        super.updateItem(item, empty);
+
+                        if (
+                            empty
+                            ||
+                            getTableRow() == null
+                            ||
+                            getTableRow().getItem() == null
+                        ) {
+
+                            setText(null);
+
+                        } else {
+
+                            Booking booking =
+                                    getTableRow().getItem();
+
+                            AppUser user =
+                                    userDAO.findById(
+                                            booking.getUserId()
+                                    );
+
+                            setText(
+                                    user != null
+                                    ?
+                                    user.getName()
+                                    :
+                                    "-"
+                            );
                         }
                     }
                 });
-            }
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    Booking currentBooking = getTableView().getItems().get(getIndex());
-                    // Jika status sudah COMPLETED atau REJECTED, sembunyikan tombol selesainya
-                    if (currentBooking.getStatus() == BookingStatus.COMPLETED || currentBooking.getStatus() == BookingStatus.REJECTED) {
-                        setGraphic(null);
-                    } else {
-                        setGraphic(btnSelesai);
+        // ======================================================
+        // VENUE
+        // ======================================================
+
+        TableColumn<Booking, String> colVenue =
+                new TableColumn<>("Nama Venue");
+
+        colVenue.setCellFactory(param ->
+                new TableCell<>() {
+
+                    @Override
+                    protected void updateItem(
+                            String item,
+                            boolean empty
+                    ) {
+
+                        super.updateItem(item, empty);
+
+                        if (
+                            empty
+                            ||
+                            getTableRow() == null
+                            ||
+                            getTableRow().getItem() == null
+                        ) {
+
+                            setText(null);
+
+                        } else {
+
+                            Booking booking =
+                                    getTableRow().getItem();
+
+                            Venue venue =
+                                    venueDAO.findById(
+                                            booking.getVenueId()
+                                    );
+
+                            setText(
+                                    venue != null
+                                    ?
+                                    venue.getName()
+                                    :
+                                    "-"
+                            );
+                        }
                     }
-                }
-            }
-        });
-        colAksi.setPrefWidth(100);
+                });
 
-        tableView.getColumns().addAll(colId, colUser, colVenue, colEvent, colTanggal, colHarga, colStatus, colAksi);
-        mainContent.getChildren().add(tableView);
+        // ======================================================
+        // TANGGAL
+        // ======================================================
+
+        TableColumn<Booking, String> colTanggal =
+                new TableColumn<>("Tanggal");
+
+        colTanggal.setCellFactory(param ->
+                new TableCell<>() {
+
+                    @Override
+                    protected void updateItem(
+                            String item,
+                            boolean empty
+                    ) {
+
+                        super.updateItem(item, empty);
+
+                        if (
+                            empty
+                            ||
+                            getTableRow() == null
+                            ||
+                            getTableRow().getItem() == null
+                        ) {
+
+                            setText(null);
+
+                        } else {
+
+                            Booking booking =
+                                    getTableRow().getItem();
+
+                            setText(
+                                    booking.getStartDate()
+                                    +
+                                    " - "
+                                    +
+                                    booking.getEndDate()
+                            );
+                        }
+                    }
+                });
+
+        // ======================================================
+        // STATUS
+        // ======================================================
+
+        TableColumn<Booking, BookingStatus> colStatus =
+                new TableColumn<>("Status");
+
+        colStatus.setCellValueFactory(
+                new PropertyValueFactory<>("status")
+        );
+
+        colStatus.setCellFactory(param ->
+                new TableCell<>() {
+
+                    private final Label badge =
+                            new Label();
+
+                    @Override
+                    protected void updateItem(
+                            BookingStatus item,
+                            boolean empty
+                    ) {
+
+                        super.updateItem(item, empty);
+
+                        if (
+                            empty
+                            ||
+                            item == null
+                        ) {
+
+                            setGraphic(null);
+
+                        } else {
+
+                            if (
+                                item ==
+                                BookingStatus.APPROVED
+                            ) {
+
+                                badge.setText(
+                                        "Berlangsung"
+                                );
+
+                                badge.setStyle("""
+                                    -fx-background-color:#D6EAF8;
+                                    -fx-text-fill:#1A365D;
+                                    -fx-background-radius:20;
+                                    -fx-padding:6 18 6 18;
+                                    -fx-font-weight:bold;
+                                """);
+
+                            } else if (
+                                item ==
+                                BookingStatus.COMPLETED
+                            ) {
+
+                                badge.setText(
+                                        "Selesai"
+                                );
+
+                                badge.setStyle("""
+                                    -fx-background-color:#C6F6D5;
+                                    -fx-text-fill:#2F855A;
+                                    -fx-background-radius:20;
+                                    -fx-padding:6 18 6 18;
+                                    -fx-font-weight:bold;
+                                """);
+
+                            } else {
+
+                                badge.setText(
+                                        item.name()
+                                );
+
+                                badge.setStyle("""
+                                    -fx-background-color:#FEF3C7;
+                                    -fx-text-fill:#92400E;
+                                    -fx-background-radius:20;
+                                    -fx-padding:6 18 6 18;
+                                    -fx-font-weight:bold;
+                                """);
+                            }
+
+                            setGraphic(badge);
+                        }
+                    }
+                });
+
+        // ======================================================
+        // DETAIL BUTTON
+        // ======================================================
+
+        TableColumn<Booking, Void> colDetail =
+                new TableColumn<>("Detail");
+
+        colDetail.setCellFactory(param ->
+                new TableCell<>() {
+
+                    private final Button btn =
+                            new Button("➜");
+
+                    {
+
+                        btn.setStyle("""
+                            -fx-background-color:white;
+                            -fx-border-color:#D1D5DB;
+                            -fx-background-radius:50;
+                            -fx-border-radius:50;
+                            -fx-font-size:16;
+                            -fx-cursor:hand;
+                        """);
+
+                        btn.setOnAction(e -> {
+
+                            Booking booking =
+                                    getTableView()
+                                            .getItems()
+                                            .get(getIndex());
+
+                            Alert alert =
+                                    new Alert(
+                                            Alert.AlertType.INFORMATION
+                                    );
+
+                            alert.setHeaderText(
+                                    "Detail Booking"
+                            );
+
+                            alert.setContentText(
+                                    "Booking ID : "
+                                    + booking.getId()
+                                    +
+                                    "\nTanggal : "
+                                    + booking.getStartDate()
+                                    + " - "
+                                    + booking.getEndDate()
+                                    +
+                                    "\nTotal : Rp"
+                                    + String.format(
+                                            "%,.0f",
+                                            booking.getTotalPrice()
+                                    )
+                            );
+
+                            alert.showAndWait();
+                        });
+                    }
+
+                    @Override
+                    protected void updateItem(
+                            Void item,
+                            boolean empty
+                    ) {
+
+                        super.updateItem(item, empty);
+
+                        if (empty) {
+
+                            setGraphic(null);
+
+                        } else {
+
+                            setGraphic(btn);
+                        }
+                    }
+                });
+
+        // ======================================================
+        // COMPLETE BUTTON
+        // ======================================================
+
+        TableColumn<Booking, Void> colAction =
+                new TableColumn<>("Aksi");
+
+        colAction.setCellFactory(param ->
+                new TableCell<>() {
+
+                    private final Button btn =
+                            new Button("Selesai");
+
+                    {
+
+                        btn.setStyle("""
+                            -fx-background-color:#1A365D;
+                            -fx-text-fill:white;
+                            -fx-background-radius:8;
+                            -fx-font-weight:bold;
+                            -fx-cursor:hand;
+                        """);
+
+                        btn.setOnAction(e -> {
+
+                            Booking booking =
+                                    getTableView()
+                                            .getItems()
+                                            .get(getIndex());
+
+                            Alert confirm =
+                                    new Alert(
+                                            Alert.AlertType.CONFIRMATION
+                                    );
+
+                            confirm.setHeaderText(
+                                    "Konfirmasi"
+                            );
+
+                            confirm.setContentText(
+                                    "Tandai booking selesai?"
+                            );
+
+                            Optional<ButtonType> result =
+                                    confirm.showAndWait();
+
+                            if (
+                                result.isPresent()
+                                &&
+                                result.get()
+                                ==
+                                ButtonType.OK
+                            ) {
+
+                                bookingService.completeBooking(
+                                        booking.getId()
+                                );
+
+                                refreshTable(
+                                        tfSearch.getText()
+                                );
+                            }
+                        });
+                    }
+
+                    @Override
+                    protected void updateItem(
+                            Void item,
+                            boolean empty
+                    ) {
+
+                        super.updateItem(item, empty);
+
+                        if (
+                            empty
+                        ) {
+
+                            setGraphic(null);
+
+                        } else {
+
+                            Booking booking =
+                                    getTableView()
+                                            .getItems()
+                                            .get(getIndex());
+
+                            if (
+                                booking.getStatus()
+                                ==
+                                BookingStatus.COMPLETED
+                            ) {
+
+                                setGraphic(null);
+
+                            } else {
+
+                                setGraphic(btn);
+                            }
+                        }
+                    }
+                });
+
+        tableView.getColumns().clear();
+
+        tableView.getColumns().add(colNo);
+        tableView.getColumns().add(colUser);
+        tableView.getColumns().add(colVenue);
+        tableView.getColumns().add(colTanggal);
+        tableView.getColumns().add(colStatus);
+        tableView.getColumns().add(colDetail);
+        tableView.getColumns().add(colAction);
+
+        // ======================================================
+        // LOAD DATA
+        // ======================================================
 
         refreshTable("");
-        root.setCenter(mainContent);
-        return new Scene(root, 960, 650);
+
+        mainContent.getChildren().addAll(
+                headerRow,
+                statsRow,
+                tableView
+        );
+
+        root.setCenter(
+                ViewUtil.createScrollable(mainContent)
+        );
+
+        return new Scene(
+                root,
+                1400,
+                850
+        );
     }
 
-    // Fungsi pemrosesan filter pencarian data booking secara dinamis
-    private void refreshTable(String keyword) {
+    // ======================================================
+    // REFRESH TABLE
+    // ======================================================
+
+    private void refreshTable(
+            String keyword
+    ) {
+
         tableView.getItems().clear();
-        List<Booking> allBookings = bookingService.getAllBookings();
 
-        if (keyword == null || keyword.trim().isEmpty()) {
-            tableView.getItems().addAll(allBookings);
+        List<Booking> bookings;
+
+        if (
+            keyword == null
+            ||
+            keyword.isBlank()
+        ) {
+
+            bookings =
+                    bookingService.getAllBookings();
+
         } else {
-            String cleanKeyword = keyword.toLowerCase().trim();
-            
-            // Menyaring berdasarkan nama event acara, atau melakukan lookup nama user
-            List<Booking> filteredList = allBookings.stream().filter(b -> {
-                AppUser user = userDAO.findById(b.getUserId());
-                String namaUser = (user != null) ? user.getName().toLowerCase() : "";
-                String namaEvent = (b.getEventName() != null) ? b.getEventName().toLowerCase() : "";
-                
-                return namaUser.contains(cleanKeyword) || namaEvent.contains(cleanKeyword);
-            }).collect(Collectors.toList());
 
-            tableView.getItems().addAll(filteredList);
+            bookings =
+                    bookingService.searchBookingsByUserName(
+                            keyword
+                    );
         }
+
+        tableView.getItems().addAll(
+                bookings
+        );
+    }
+
+    // ======================================================
+    // CARD
+    // ======================================================
+
+    private VBox createStatCard(
+            long value,
+            String label,
+            String bgColor,
+            String textColor
+    ) {
+
+        VBox card =
+                new VBox(12);
+
+        card.setPadding(
+                new Insets(20)
+        );
+
+        card.setPrefWidth(220);
+
+        card.setStyle(
+                "-fx-background-color:"
+                + bgColor
+                +
+                ";"
+                +
+                "-fx-background-radius:18;"
+        );
+
+        Label number =
+                new Label(
+                        String.valueOf(value)
+                );
+
+        number.setFont(
+                Font.font(
+                        "System",
+                        FontWeight.BOLD,
+                        42
+                )
+        );
+
+        number.setStyle(
+                "-fx-text-fill:"
+                + textColor
+                +
+                ";"
+        );
+
+        Label text =
+                new Label(label);
+
+        text.setStyle(
+                "-fx-text-fill:"
+                + textColor
+                +
+                ";"
+        );
+
+        text.setFont(
+                Font.font(
+                        "System",
+                        FontWeight.MEDIUM,
+                        14
+                )
+        );
+
+        card.getChildren().addAll(
+                number,
+                text
+        );
+
+        return card;
     }
 }

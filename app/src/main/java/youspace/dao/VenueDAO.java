@@ -12,6 +12,7 @@ import youspace.config.DatabaseConfig;
 import youspace.enums.VenueCategory;
 import youspace.enums.VenueStatus;
 import youspace.models.Venue;
+import java.util.Comparator;
 
 public class VenueDAO {
 
@@ -19,7 +20,7 @@ public class VenueDAO {
         String sql = """
             INSERT INTO venues 
             (name, description, category, capacity, price_per_day, image_path, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """;
 
         try (
@@ -45,8 +46,7 @@ public class VenueDAO {
     public boolean updateVenue(Venue venue) {
         String sql = """
             UPDATE venues
-            SET name = ?, description = ?, category = ?, capacity = ?,
-                price_per_day = ?, image_path = ?, status = ?
+            SET name = ?, description = ?, category = ?, capacity = ?, price_per_day = ?, image_path = ?, status = ?
             WHERE id = ?;
         """;
 
@@ -108,6 +108,29 @@ public class VenueDAO {
         return null;
     }
 
+    // --- METHOD BARU UNTUK FITUR REKOMENDASI ---
+    public Venue getFirstVenueByCategory(String categoryName) {
+        String sql = "SELECT * FROM venues WHERE category = ? ORDER BY id ASC LIMIT 1;";
+
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+            stmt.setString(1, categoryName);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapResultSetToVenue(rs);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Gagal mengambil venue rekomendasi: " + e.getMessage());
+        }
+
+        return null;
+    }
+    // ------------------------------------------
+
     public List<Venue> getAllVenues() {
         List<Venue> venues = new ArrayList<>();
         String sql = "SELECT * FROM venues ORDER BY id DESC;";
@@ -123,6 +146,24 @@ public class VenueDAO {
 
         } catch (SQLException e) {
             System.out.println("Gagal mengambil venue: " + e.getMessage());
+        }
+
+        return venues;
+    }
+
+    public List<Venue> getRecommendedVenues() {
+
+        List<Venue> venues =   
+        getAllVenues();
+
+        venues.sort(
+            Comparator.comparingDouble(
+                Venue::getPricePerDay
+            )   
+        );
+
+        if (venues.size() > 3) {
+            return venues.subList(0, 3);   
         }
 
         return venues;

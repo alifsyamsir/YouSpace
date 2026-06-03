@@ -9,6 +9,7 @@ import youspace.service.UserService;
 import youspace.utils.SessionManager;
 import youspace.view.LoginView;
 import youspace.view.admin.AdminDashboardView; 
+import youspace.view.user.UserDashboardView;
 
 public class LoginController {
 
@@ -31,11 +32,11 @@ public class LoginController {
         if (email.trim().equals("admin@gmail.com") && password.equals("OOP5SUKSES")) {
             // Membuat objek mock Admin instan sesuai aturan awalmu
             AppUser adminUser = new Admin(
-                0, 
-                "Super Admin", 
-                "admin@gmail.com", 
-                "OOP5SUKSES", 
-                "-", 
+                0,
+                "Super Admin",
+                "admin@gmail.com",
+                "OOP5SUKSES",
+                "-",
                 UserStatus.ACTIVE
             );
             
@@ -56,29 +57,52 @@ public class LoginController {
         try {
             AppUser user = userService.findByEmail(email);
 
-            if (user != null && user.getPassword().equals(password)) {
-                
-                // Cek jika akun customer sedang di-suspend
-                if (user.getStatus() == UserStatus.SUSPENDED) {
-                    view.showAlert("Login Gagal", "Akun Anda sedang ditangguhkan oleh Admin.", Alert.AlertType.WARNING);
-                    return;
-                }
-
-                // Simpan customer ke session
-                SessionManager.setCurrentUser(user);
-                view.showAlert("Login Sukses", "Selamat datang, " + user.getName() + "!", Alert.AlertType.INFORMATION);
-                
-                // Alihkan ke Halaman Utama Customer (Sesuaikan nama class View Customermu)
-                // MainCustomerView customerView = new MainCustomerView(view.getStage());
-                // view.getStage().setScene(customerView.createScene());
-                
-            } else {
-                view.showAlert("Login Gagal", "Email atau Kata Sandi salah.", Alert.AlertType.ERROR);
+            //login gagal jika email tidak ditemukan
+            if (user == null) {
+                view.showAlert(
+                    "Login Gagal",
+                    "Anda belum memiliki akun. Silakan daftar terlebih dahulu.",
+                    Alert.AlertType.WARNING
+                );
+                return;
             }
 
+            SessionManager.setCurrentUser(user);
+
+            //AKun suspended
+            if (user.getStatus() == UserStatus.SUSPENDED) {
+                view.showAlert(
+                    "Login Gagal",
+                    "Akun Anda sedang ditangguhkan oleh Admin.",
+                    Alert.AlertType.WARNING
+                );
+                return;
+            }
+
+            //Login SUkses
+            view.showAlert(
+                "Login Sukses",
+                "Selamat datang, " + user.getName() + "!",
+                Alert.AlertType.INFORMATION
+            );
+
+            UserDashboardView dashboard =
+            new UserDashboardView(view.getStage());
+
+            view.getStage().setScene(
+                dashboard.createScene()
+            );
+
+            view.getStage().centerOnScreen();
+           
         } catch (Exception e) {
-            view.showAlert("Error", "Terjadi kesalahan sistem: " + e.getMessage(), Alert.AlertType.ERROR);
+            view.showAlert(
+                "Error",
+                "Terjadi kesalahan sistem: " + e.getMessage(),
+                Alert.AlertType.ERROR
+            );
             e.printStackTrace();
         }
     }
 }
+    

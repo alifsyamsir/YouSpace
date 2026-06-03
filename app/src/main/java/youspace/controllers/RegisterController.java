@@ -29,7 +29,7 @@ public class RegisterController {
                 
                 // Redirect otomatis ke Halaman Login setelah sukses sign up
                 LoginView loginView = new LoginView(view.getStage());
-                view.getStage().getScene().setRoot(loginView.createScene().getRoot());
+                view.getStage().setScene(loginView.createScene());
             }
         } catch (IllegalArgumentException ex) {
             view.showAlert("Gagal Daftar", ex.getMessage(), Alert.AlertType.ERROR);

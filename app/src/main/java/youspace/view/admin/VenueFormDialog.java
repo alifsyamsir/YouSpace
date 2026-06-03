@@ -1,163 +1,511 @@
 package youspace.view.admin;
 
+import java.io.File;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+
 import youspace.enums.VenueCategory;
 import youspace.enums.VenueStatus;
+
 import youspace.models.Venue;
+
 import youspace.service.VenueService;
 
 public class VenueFormDialog extends Stage {
 
     private final Venue existingVenue;
+
     private final VenueService venueService;
 
-    private ComboBox<VenueCategory> cbTipe;
-    private ComboBox<VenueStatus> cbKondisi;
-    private TextField tfNama, tfHarga, tfGambar, tfKapasitas;
-    private TextArea taDeskripsi;
+    private ComboBox<VenueCategory> cbCategory;
 
-    public VenueFormDialog(Stage owner, Venue existingVenue) {
+    private ComboBox<VenueStatus> cbStatus;
+
+    private TextField tfName;
+
+    private TextField tfPrice;
+
+    private TextField tfCapacity;
+
+    private TextField tfImage;
+
+    private TextArea taDescription;
+
+    private ImageView previewImage;
+
+    public VenueFormDialog(
+            Stage owner,
+            Venue existingVenue
+    ) {
+
         this.existingVenue = existingVenue;
-        this.venueService = new VenueService();
 
-        initModality(Modality.WINDOW_MODAL);
+        this.venueService =
+                new VenueService();
+
         initOwner(owner);
-        setTitle(existingVenue == null ? "Tambah Venue" : "Edit Venue");
 
-        VBox layout = new VBox(15);
-        layout.setPadding(new Insets(25));
-        layout.setStyle("-fx-background-color: #F8F9FA;");
+        initModality(
+                Modality.APPLICATION_MODAL
+        );
 
-        Label txtTitle = new Label(existingVenue == null ? "Tambah Venue Baru" : "Edit Detail Venue");
-        txtTitle.setFont(Font.font("System", FontWeight.BOLD, 18));
-        layout.getChildren().add(txtTitle);
+        setTitle(
+                existingVenue == null
+                        ? "Tambah Venue"
+                        : "Edit Venue"
+        );
 
-        GridPane grid = new GridPane();
-        grid.setHgap(15);
-        grid.setVgap(12);
+        BorderPane root =
+                new BorderPane();
 
-        // Kategori (Enum)
-        grid.add(new Label("Tipe Ruangan"), 0, 0);
-        cbTipe = new ComboBox<>();
-        cbTipe.getItems().addAll(VenueCategory.values()); // Otomatis mengambil AULA, BALLROOM, dll.
-        cbTipe.setMaxWidth(Double.MAX_VALUE);
-        grid.add(cbTipe, 0, 1);
+        root.setStyle("""
+            -fx-background-color:#F8FAFC;
+        """);
 
-        // Kondisi / Status (Enum)
-        grid.add(new Label("Kondisi Ruangan"), 1, 0);
-        cbKondisi = new ComboBox<>();
-        cbKondisi.getItems().addAll(VenueStatus.values()); // AVAILABLE, UNAVAILABLE
-        cbKondisi.setMaxWidth(Double.MAX_VALUE);
-        grid.add(cbKondisi, 1, 1);
+        VBox container =
+                new VBox(25);
 
-        // Nama Ruangan
-        grid.add(new Label("Nama Ruangan"), 0, 2, 2, 1);
-        tfNama = new TextField();
-        grid.add(tfNama, 0, 3, 2, 1);
+        container.setPadding(
+                new Insets(35)
+        );
 
-        // Harga & Kapasitas
-        grid.add(new Label("Harga/Hari (Rp)"), 0, 4);
-        tfHarga = new TextField();
-        grid.add(tfHarga, 0, 5);
+        // ================= HEADER =================
 
-        grid.add(new Label("Kapasitas (Orang)"), 1, 4);
-        tfKapasitas = new TextField();
-        grid.add(tfKapasitas, 1, 5);
+        HBox header =
+                new HBox();
 
-        // Gambar
-        grid.add(new Label("Unggah Gambar (.png, .jpg)"), 0, 6, 2, 1);
-        tfGambar = new TextField();
-        grid.add(tfGambar, 0, 7, 2, 1);
+        header.setAlignment(
+                Pos.CENTER_LEFT
+        );
 
-        // Deskripsi
-        grid.add(new Label("Deskripsi & Fasilitas Ruangan"), 0, 8, 2, 1);
-        taDeskripsi = new TextArea();
-        taDeskripsi.setPrefHeight(80);
-        taDeskripsi.setWrapText(true);
-        grid.add(taDeskripsi, 0, 9, 2, 1);
+        Label title =
+                new Label(
+                        existingVenue == null
+                                ? "Tambah Venue"
+                                : "Edit Venue"
+                );
 
-        layout.getChildren().add(grid);
+        title.setFont(
+                Font.font(
+                        "System",
+                        FontWeight.BOLD,
+                        32
+                )
+        );
 
-        // Jika Edit, isi form dengan data lama
-        if (existingVenue != null) {
-            cbTipe.setValue(existingVenue.getCategory());
-            cbKondisi.setValue(existingVenue.getStatus());
-            tfNama.setText(existingVenue.getName());
-            tfHarga.setText(String.valueOf((int) existingVenue.getPricePerDay()));
-            tfKapasitas.setText(String.valueOf(existingVenue.getCapacity()));
-            tfGambar.setText(existingVenue.getImagePath());
-            taDeskripsi.setText(existingVenue.getDescription());
-        } else {
-            cbKondisi.setValue(VenueStatus.AVAILABLE); // Default tambah baru
-        }
+        title.setStyle("""
+            -fx-text-fill:#183B63;
+        """);
 
-        // Tombol Aksi
-        HBox actionRow = new HBox(12);
-        actionRow.setAlignment(Pos.CENTER_RIGHT);
-        
-        Button btnBatal = new Button("Batal");
-        btnBatal.setOnAction(e -> close());
-        
-        Button btnSimpan = new Button(existingVenue == null ? "Simpan Venue" : "Simpan Perubahan");
-        btnSimpan.setStyle("-fx-background-color: #1A365D; -fx-text-fill: white; -fx-font-weight: bold;");
-        btnSimpan.setOnAction(e -> handleSave());
+        Region spacer =
+                new Region();
 
-        actionRow.getChildren().addAll(btnBatal, btnSimpan);
-        layout.getChildren().add(actionRow);
+        HBox.setHgrow(
+                spacer,
+                Priority.ALWAYS
+        );
 
-        setScene(new Scene(layout, 460, 580));
+        Button btnClose =
+                new Button("✕");
+
+        btnClose.setStyle("""
+            -fx-background-color:transparent;
+            -fx-font-size:24;
+            -fx-cursor:hand;
+        """);
+
+        btnClose.setOnAction(e -> close());
+
+        header.getChildren().addAll(
+                title,
+                spacer,
+                btnClose
+        );
+
+        // ================= FORM =================
+
+        HBox formSection =
+                new HBox(25);
+
+        // ================= LEFT =================
+
+        VBox leftSection =
+                new VBox(18);
+
+        previewImage =
+                new ImageView();
+
+        previewImage.setFitWidth(320);
+
+        previewImage.setFitHeight(190);
+
+        previewImage.setPreserveRatio(false);
+
+        previewImage.setStyle("""
+            -fx-background-radius:14;
+        """);
+
+        tfImage =
+                new TextField();
+
+        tfImage.setEditable(false);
+
+        tfImage.setPromptText(
+                "Pilih gambar venue..."
+        );
+
+        Button btnUpload =
+                new Button("Unggah Gambar");
+
+        btnUpload.setStyle("""
+            -fx-background-color:#183B63;
+            -fx-text-fill:white;
+            -fx-font-weight:bold;
+            -fx-background-radius:10;
+            -fx-cursor:hand;
+        """);
+
+        btnUpload.setOnAction(e -> {
+
+            FileChooser chooser =
+                    new FileChooser();
+
+            chooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter(
+                            "Image Files",
+                            "*.png",
+                            "*.jpg",
+                            "*.jpeg"
+                    )
+            );
+
+            File file =
+                    chooser.showOpenDialog(this);
+
+            if (file != null) {
+
+                tfImage.setText(
+                        file.getAbsolutePath()
+                );
+
+                previewImage.setImage(
+                        new Image(
+                                file.toURI().toString()
+                        )
+                );
+            }
+        });
+
+        taDescription =
+                new TextArea();
+
+        taDescription.setPromptText(
+                "Deskripsi venue..."
+        );
+
+        taDescription.setPrefHeight(180);
+
+        taDescription.setWrapText(true);
+
+        leftSection.getChildren().addAll(
+                previewImage,
+                tfImage,
+                btnUpload,
+                createLabel("Deskripsi"),
+                taDescription
+        );
+
+        // ================= RIGHT =================
+
+        VBox rightSection =
+                new VBox(16);
+
+        GridPane grid =
+                new GridPane();
+
+        grid.setHgap(18);
+
+        grid.setVgap(15);
+
+        cbCategory =
+                new ComboBox<>();
+
+        cbCategory.getItems().addAll(
+                VenueCategory.values()
+        );
+
+        cbStatus =
+                new ComboBox<>();
+
+        cbStatus.getItems().addAll(
+                VenueStatus.values()
+        );
+
+        tfName =
+                new TextField();
+
+        tfPrice =
+                new TextField();
+
+        tfCapacity =
+                new TextField();
+
+        grid.add(createLabel("Tipe"), 0, 0);
+        grid.add(cbCategory, 0, 1);
+
+        grid.add(createLabel("Kondisi"), 1, 0);
+        grid.add(cbStatus, 1, 1);
+
+        grid.add(createLabel("Nama Venue"), 0, 2, 2, 1);
+        grid.add(tfName, 0, 3, 2, 1);
+
+        grid.add(createLabel("Harga / Hari"), 0, 4);
+        grid.add(tfPrice, 0, 5);
+
+        grid.add(createLabel("Kapasitas"), 1, 4);
+        grid.add(tfCapacity, 1, 5);
+
+        rightSection.getChildren().add(grid);
+        formSection.getChildren().addAll(
+                leftSection,
+                rightSection
+        );
+
+        // ================= BUTTON =================
+
+        HBox footer =
+                new HBox();
+
+        footer.setAlignment(
+                Pos.CENTER_RIGHT
+        );
+
+        Button btnSave =
+                new Button(
+                        existingVenue == null
+                                ? "Simpan Venue"
+                                : "Simpan Perubahan"
+                );
+
+        btnSave.setPrefWidth(220);
+
+        btnSave.setPrefHeight(48);
+
+        btnSave.setStyle("""
+            -fx-background-color:#183B63;
+            -fx-text-fill:white;
+            -fx-font-weight:bold;
+            -fx-font-size:15;
+            -fx-background-radius:14;
+            -fx-cursor:hand;
+        """);
+
+        btnSave.setOnAction(e -> handleSave());
+
+        footer.getChildren().add(btnSave);
+
+        // ================= ADD =================
+
+        container.getChildren().addAll(
+                header,
+                formSection,
+                footer
+        );
+
+        root.setCenter(container);
+
+        loadExistingData();
+
+        setScene(
+                new Scene(root, 1000, 700)
+        );
     }
 
-    private void handleSave() {
-        if (tfNama.getText().isEmpty() || tfHarga.getText().isEmpty() || cbTipe.getValue() == null) {
-            Alert alert = new Alert(Alert.AlertType.WARNING, "Mohon lengkapi data form!");
-            alert.showAndWait();
+    private void loadExistingData() {
+
+        if (existingVenue == null) {
+
+            cbStatus.setValue(
+                    VenueStatus.AVAILABLE
+            );
+
             return;
         }
 
-        try {
-            String name = tfNama.getText();
-            String desc = taDeskripsi.getText();
-            VenueCategory category = cbTipe.getValue();
-            int capacity = Integer.parseInt(tfKapasitas.getText());
-            double price = Double.parseDouble(tfHarga.getText());
-            String img = tfGambar.getText();
+        cbCategory.setValue(
+                existingVenue.getCategory()
+        );
 
-            boolean sukses;
+        cbStatus.setValue(
+                existingVenue.getStatus()
+        );
+
+        tfName.setText(
+                existingVenue.getName()
+        );
+
+        tfPrice.setText(
+                String.valueOf(
+                        existingVenue.getPricePerDay()
+                )
+        );
+
+        tfCapacity.setText(
+                String.valueOf(
+                        existingVenue.getCapacity()
+                )
+        );
+
+        tfImage.setText(
+                existingVenue.getImagePath()
+        );
+
+        taDescription.setText(
+                existingVenue.getDescription()
+        );
+
+        if (
+                existingVenue.getImagePath()
+                        != null
+        ) {
+
+            previewImage.setImage(
+                    new Image(
+                            new File(
+                                    existingVenue.getImagePath()
+                            ).toURI().toString()
+                    )
+            );
+        }
+    }
+
+    private void handleSave() {
+
+        try {
+
+            String name =
+                    tfName.getText();
+
+            String desc =
+                    taDescription.getText();
+
+            VenueCategory category =
+                    cbCategory.getValue();
+
+            VenueStatus status =
+                    cbStatus.getValue();
+
+            int capacity =
+                    Integer.parseInt(
+                            tfCapacity.getText()
+                    );
+
+            double price =
+                    Double.parseDouble(
+                            tfPrice.getText()
+                    );
+
+            String image =
+                    tfImage.getText();
+
+            boolean success;
 
             if (existingVenue == null) {
-                // Gunakan fungsi addVenue milikmu
-                sukses = venueService.addVenue(name, desc, category, capacity, price, img);
+
+                success =
+                        venueService.addVenue(
+                                name,
+                                desc,
+                                category,
+                                capacity,
+                                price,
+                                image
+                        );
+
             } else {
-                // Set data baru ke objek existingVenue lalu panggil updateVenue milikmu
+
                 existingVenue.setName(name);
                 existingVenue.setDescription(desc);
                 existingVenue.setCategory(category);
                 existingVenue.setCapacity(capacity);
                 existingVenue.setPricePerDay(price);
-                existingVenue.setImagePath(img);
-                existingVenue.setStatus(cbKondisi.getValue());
+                existingVenue.setImagePath(image);
+                existingVenue.setStatus(status);
 
-                sukses = venueService.updateVenue(existingVenue);
+                success =
+                        venueService.updateVenue(
+                                existingVenue
+                        );
             }
 
-            if (sukses) {
+            if (success) {
+
                 close();
+
             } else {
-                throw new Exception("Gagal mengeksekusi ke database.");
+
+                throw new Exception(
+                        "Gagal menyimpan data"
+                );
             }
 
         } catch (Exception ex) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Gagal menyimpan: " + ex.getMessage());
+
+            Alert alert =
+                    new Alert(
+                            Alert.AlertType.ERROR
+                    );
+
+            alert.setHeaderText(null);
+
+            alert.setContentText(
+                    ex.getMessage()
+            );
+
             alert.showAndWait();
         }
+    }
+
+    private Label createLabel(String text) {
+
+        Label label =
+                new Label(text);
+
+        label.setFont(
+                Font.font(
+                        "System",
+                        FontWeight.SEMI_BOLD,
+                        14
+                )
+        );
+
+        return label;
     }
 }

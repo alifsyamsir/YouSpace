@@ -13,6 +13,7 @@ public class Venue {
     private double pricePerDay;
     private String imagePath;
     private VenueStatus status;
+    
 
     public Venue() {
     }
