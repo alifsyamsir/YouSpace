@@ -16,6 +16,15 @@ public class VenueService {
         this.venueDAO = new VenueDAO();
     }
 
+    // --- METHOD TAMBAHAN UNTUK REKOMENDASI DASHBOARD ---
+    public Venue getFirstVenueByCategory(String categoryName) {
+        if (ValidationUtil.isEmpty(categoryName)) {
+            throw new IllegalArgumentException("Nama kategori wajib diisi.");
+        }
+        return venueDAO.getFirstVenueByCategory(categoryName);
+    }
+    // ----------------------------------------------------
+
     public boolean addVenue(String name, String description, VenueCategory category,
                             int capacity, double pricePerDay, String imagePath) {
 
@@ -64,6 +73,10 @@ public class VenueService {
         return venueDAO.getAllVenues();
     }
 
+    public List<Venue> getRecommendedVenues() {
+        return venueDAO.getRecommendedVenues();
+    }
+
     public List<Venue> getVenuesByCategory(VenueCategory category) {
         if (category == null) {
             throw new IllegalArgumentException("Kategori venue wajib dipilih.");
@@ -71,6 +84,8 @@ public class VenueService {
 
         return venueDAO.getVenuesByCategory(category);
     }
+
+    
 
     private void validateVenueData(String name, VenueCategory category,
                                    int capacity, double pricePerDay) {

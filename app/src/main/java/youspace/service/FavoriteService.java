@@ -24,4 +24,8 @@ public class FavoriteService {
     public List<Venue> getFavoriteVenuesByUser(int userId) {
         return favoriteDAO.getFavoriteVenuesByUser(userId);
     }
+
+    public boolean isFavorite(int userId, int venueId) {
+        return favoriteDAO.isFavorite(userId, venueId);
+    }
 }

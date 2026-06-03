@@ -67,6 +67,7 @@ public class UserService {
         ) {
             SessionManager.getCurrentUser().setName(user.getName());
             SessionManager.getCurrentUser().setPhone(user.getPhone());
+            SessionManager.getCurrentUser().setEmail(user.getEmail());
         }
 
         return success;

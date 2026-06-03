@@ -126,8 +126,16 @@ public class RegisterView {
         signInLink.setStyle("-fx-text-fill: #3182CE; -fx-padding: 0; -fx-underline: false;");
         
         signInLink.setOnAction(e -> {
-            LoginView loginView = new LoginView(stage);
-            stage.getScene().setRoot(loginView.createScene().getRoot());
+            try {
+                LoginView loginView = new LoginView(stage);
+                stage.setScene(loginView.createScene());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                showAlert(
+                    "Error", "Gagal membuka halaman login:\n" + ex.getMessage(),
+                    Alert.AlertType.ERROR
+                );
+            }
         });
         signInHintBox.getChildren().addAll(alreadyHaveAccount, signInLink);
 

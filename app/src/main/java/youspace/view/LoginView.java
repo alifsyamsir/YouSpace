@@ -85,10 +85,10 @@ public class LoginView {
         passwordField.setPrefHeight(45);
         passwordField.setStyle("-fx-background-color: #E2E8F0; -fx-background-radius: 10; -fx-padding: 0 15 0 15;");
         
-        Hyperlink forgotPassword = new Hyperlink("Lupa kata sandi?");
-        forgotPassword.setFont(Font.font("System", 12));
-        forgotPassword.setStyle("-fx-text-fill: #3182CE; -fx-underline: false; -fx-padding: 0;");
-        passwordBox.getChildren().addAll(passwordLabel, passwordField, forgotPassword);
+        passwordBox.getChildren().addAll(
+            passwordLabel,
+            passwordField
+        );
 
         // Tombol Masuk
         Button loginButton = new Button("Masuk");
@@ -110,8 +110,17 @@ public class LoginView {
         
         // Pindah ke Halaman Register
         signUpLink.setOnAction(e -> {
-            RegisterView registerView = new RegisterView(stage);
-            stage.getScene().setRoot(registerView.createScene().getRoot());
+            try {
+                RegisterView registerView = new RegisterView(stage);
+                stage.setScene(registerView.createScene());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                showAlert(
+                    "Error",
+                    "Gagal membuka halaman registrasi:\n" + ex.getMessage(),
+                    Alert.AlertType.ERROR
+                );
+            }
         });
         signUpHintBox.getChildren().addAll(noAccountLabel, signUpLink);
 

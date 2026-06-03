@@ -93,24 +93,56 @@ public class FavoriteDAO {
         SELECT COUNT(*) AS total
         FROM favorites
         WHERE user_id = ?;
-    """;
+        """;
 
-    try (
-        Connection conn = DatabaseConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(sql)
-    ) {
-        stmt.setInt(1, userId);
+  
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+            stmt.setInt(1, userId);
 
-        ResultSet rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery();
 
-        if (rs.next()) {
-            return rs.getInt("total");
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Gagal menghitung wishlist user: " + e.getMessage());
         }
 
-    } catch (SQLException e) {
-        System.out.println("Gagal menghitung wishlist user: " + e.getMessage());
+        return 0;
     }
 
-    return 0;
-}
+    public boolean isFavorite(int userId, int venueId) {
+
+        String sql = """
+        SELECT * FROM favorites
+        WHERE user_id = ?
+        AND venue_id = ?;
+        """;
+
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+
+            stmt.setInt(1, userId);
+            stmt.setInt(2, venueId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            return rs.next();
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                "Gagal cek favorite: "
+                + e.getMessage()
+            );
+        }
+
+        return false;
+    }
 }

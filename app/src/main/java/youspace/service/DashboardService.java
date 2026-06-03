@@ -31,6 +31,10 @@ public class DashboardService {
         return bookingDAO.countActiveBookings();
     }
 
+    public int getTotalBooking() {
+        return bookingDAO.countAllBookings();
+    }
+
     public double getTotalIncome() {
         return paymentDAO.getTotalPaidIncome();
     }
@@ -61,5 +65,9 @@ public class DashboardService {
 
     public int getTotalBookingByUser(int userId) {
         return bookingDAO.countBookingsByUser(userId);
+    }
+
+    public int getCompletedBooking() {
+        return bookingDAO.countCompletedBookings();
     }
 }

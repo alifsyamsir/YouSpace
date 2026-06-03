@@ -155,12 +155,11 @@ public class BookingDAO {
         return false;
     }
 
-    public int countActiveBookings() {
-        String sql = """
-            SELECT COUNT(*) AS total
-            FROM bookings
-            WHERE status IN ('PENDING', 'WAITING_PAYMENT', 'WAITING_CONFIRMATION', 'APPROVED');
-        """;
+    
+// Total seluruh booking yang pernah dibuat
+    public int countAllBookings() {
+        String sql = "SELECT COUNT(*) AS total FROM bookings;";
+
 
         try (
             Connection conn = DatabaseConfig.getConnection();
@@ -170,39 +169,66 @@ public class BookingDAO {
             if (rs.next()) {
                 return rs.getInt("total");
             }
-
         } catch (SQLException e) {
-            System.out.println("Gagal menghitung booking aktif: " + e.getMessage());
+            System.out.println("Gagal menghitung total booking: " + e.getMessage()); 
         }
 
         return 0;
     }
 
+
+// Booking aktif = sudah dibayar dan sedang berlangsung
+    public int countActiveBookings() {
+        String sql = """
+        SELECT COUNT(*) AS total
+        FROM bookings
+        WHERE status = 'APPROVED';
+        """;
+
+  
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)
+        ) {
+            if (rs.next()) {  
+                return rs.getInt("total");
+
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Gagal menghitung booking aktif: " + e.getMessage());  
+        }
+
+        return 0;
+    }
+  
     public int countActiveBookingsByUser(int userId) {
-    String sql = """
+        String sql = """
         SELECT COUNT(*) AS total
         FROM bookings
         WHERE user_id = ?
-          AND status = 'APPROVED';
-    """;
+        AND status = 'APPROVED';
+          """;
 
-    try (
-        Connection conn = DatabaseConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(sql)
-    ) {
-        stmt.setInt(1, userId);
+          try (
+            Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
 
-        ResultSet rs = stmt.executeQuery();
+            stmt.setInt(1, userId);
 
-        if (rs.next()) {
-            return rs.getInt("total");
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Gagal menghitung booking aktif user: " + e.getMessage());
         }
 
-    } catch (SQLException e) {
-        System.out.println("Gagal menghitung booking aktif user: " + e.getMessage());
-    }
-
-    return 0;
+        return 0;
     }
 
     public int countBookingsByUser(int userId) {
@@ -229,6 +255,161 @@ public class BookingDAO {
         }
 
         return 0;
+    }
+
+    public void autoCompleteBookings() {
+
+        String sql = """
+        UPDATE bookings
+        SET status = 'COMPLETED'
+        WHERE status = 'APPROVED'
+        AND date(end_date) < date('now');  
+        """;
+
+        try (
+            Connection conn =  
+            DatabaseConfig.getConnection();
+
+            PreparedStatement stmt =
+            conn.prepareStatement(sql)  
+        ) {
+  
+            stmt.executeUpdate();
+  
+        } catch (SQLException e) {
+
+            System.out.println(
+                "Gagal auto complete booking: "
+                + e.getMessage()
+            );
+        }
+    }
+
+    public List<String> getBookedDatesByVenue(int venueId) {
+
+        List<String> bookedDates = new ArrayList<>();
+
+        String sql = """
+        SELECT start_date, end_date
+        FROM bookings
+        WHERE venue_id = ?
+        AND status IN (
+        'WAITING_PAYMENT',
+        'WAITING_CONFIRMATION',
+        'APPROVED'
+        );
+        """;
+  
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+
+            stmt.setInt(1, venueId);
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+
+                bookedDates.add(
+                    rs.getString("start_date")
+                    + " sampai "
+                    + rs.getString("end_date")
+                );
+            }
+
+        } catch (SQLException e) {
+            System.out.println(
+                "Gagal mengambil tanggal booking: "
+                + e.getMessage()
+            );  
+        }
+
+        return bookedDates;
+    }
+
+    // TOTAL BOOKING SELESAI
+    public int countCompletedBookings() {
+
+        String sql = """
+        SELECT COUNT(*) AS total
+        FROM bookings
+        WHERE status = 'COMPLETED';
+        """;
+
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)
+        ) {
+
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                "Gagal menghitung booking selesai: "
+                + e.getMessage()
+            );
+        }
+
+        return 0;
+    }
+
+    
+// SEARCH BOOKING BY USER
+
+    public List<Booking> searchBookingsByUserName(
+        String keyword
+    ) {
+
+        List<Booking> bookings =
+        new ArrayList<>();
+
+        String sql = """
+        SELECT b.*
+        FROM bookings b
+        JOIN users u
+        ON b.user_id = u.id
+        WHERE LOWER(u.name)
+        LIKE LOWER(?)
+        ORDER BY b.id DESC;
+        """;
+
+        try (
+            Connection conn =
+            DatabaseConfig.getConnection();
+
+            PreparedStatement stmt =
+            conn.prepareStatement(sql)
+        ) {
+
+            stmt.setString(
+                1,
+                "%" + keyword + "%"
+            );
+
+            ResultSet rs =
+            stmt.executeQuery();
+
+            while (rs.next()) {
+
+                bookings.add(
+                    mapResultSetToBooking(rs)
+                );
+            }
+
+        } catch (SQLException e) {
+
+            System.out.println(
+                "Gagal search booking: "
+                + e.getMessage()
+            );
+        }
+
+        return bookings;
     }
 
     private Booking mapResultSetToBooking(ResultSet rs) throws SQLException {
