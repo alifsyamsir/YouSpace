@@ -1,5 +1,7 @@
 package youspace.view.user;
 
+import java.io.File;
+
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -8,15 +10,15 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-
 import youspace.models.Venue;
 import youspace.service.FavoriteService;
-
-import java.io.File;
+import youspace.utils.ViewUtil;
 
 public class DetailVenueView {
 
@@ -227,8 +229,10 @@ public class DetailVenueView {
                 card
         );
 
-        root.setCenter(content);
+        root.setCenter(
+                ViewUtil.createScrollable(content)
+        );
 
-        return new Scene(root, 1200, 800);
+        return new Scene(root, 1280, 760);
     }
 }

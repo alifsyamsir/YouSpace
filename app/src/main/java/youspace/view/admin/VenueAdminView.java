@@ -119,7 +119,7 @@ public class VenueAdminView {
 
         refreshTable();
         root.setCenter(mainContent);
-        return new Scene(root, 960, 650);
+        return new Scene(root, 1280, 760);
     }
 
     private void refreshTable() {
@@ -127,9 +127,14 @@ public class VenueAdminView {
         if (currentCategory.equals("Semua")) {
             tableView.getItems().addAll(venueService.getAllVenues());
         } else {
-            // Mengubah String Filter ke Enum Kategori yang sesuai
+            // Convert filter string to enum, handling special case for Wedding Room
             String enumName = currentCategory.toUpperCase().replace(" ", "_");
-            VenueCategory catEnum = VenueCategory.valueOf(enumName);
+            VenueCategory catEnum;
+            if (enumName.equals("WEDDING_ROOM")) {
+                catEnum = VenueCategory.WEDDING_HALL; // map to actual enum constant
+            } else {
+                catEnum = VenueCategory.valueOf(enumName);
+            }
             tableView.getItems().addAll(venueService.getVenuesByCategory(catEnum));
         }
     }

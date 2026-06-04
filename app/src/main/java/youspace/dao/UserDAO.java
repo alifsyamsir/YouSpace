@@ -104,7 +104,7 @@ public class UserDAO {
 
         List<AppUser> users = new ArrayList<>();
 
-        String sql = "SELECT * FROM users ORDER BY id DESC;";
+        String sql = "SELECT * FROM users WHERE role = 'USER' ORDER BY id DESC;";
 
         try (
             Connection conn = DatabaseConfig.getConnection();
@@ -130,9 +130,10 @@ public class UserDAO {
 
         String sql = """
             SELECT * FROM users
-            WHERE name LIKE ?
-            OR email LIKE ?
-            OR phone LIKE ?
+            WHERE (LOWER(name) LIKE LOWER(?)
+            OR LOWER(email) LIKE LOWER(?)
+            OR phone LIKE ?)
+            AND role = 'USER'
             ORDER BY id DESC;
         """;
 

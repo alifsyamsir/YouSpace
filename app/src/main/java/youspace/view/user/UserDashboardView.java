@@ -330,6 +330,8 @@ public class UserDashboardView {
                 )
         );
 
+        name.setStyle("-fx-text-fill: #183B63;");
+
         Label category =
                 new Label(
                         formatCategory(
@@ -379,6 +381,8 @@ public class UserDashboardView {
                         22
                 )
         );
+
+        lblPrice.setStyle("-fx-text-fill: #1F2937;");
 
         Button btn =
                 new Button(

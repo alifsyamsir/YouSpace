@@ -6,6 +6,7 @@ import youspace.dao.VenueDAO;
 import youspace.enums.VenueCategory;
 import youspace.enums.VenueStatus;
 import youspace.models.Venue;
+import youspace.utils.FileUtils;
 import youspace.utils.ValidationUtil;
 
 public class VenueService {
@@ -30,13 +31,15 @@ public class VenueService {
 
         validateVenueData(name, category, capacity, pricePerDay);
 
+        String savedImagePath = FileUtils.saveUploadedImage(imagePath);
+
         Venue venue = new Venue();
         venue.setName(name);
         venue.setDescription(description);
         venue.setCategory(category);
         venue.setCapacity(capacity);
         venue.setPricePerDay(pricePerDay);
-        venue.setImagePath(imagePath);
+        venue.setImagePath(savedImagePath);
         venue.setStatus(VenueStatus.AVAILABLE);
 
         return venueDAO.addVenue(venue);
@@ -49,6 +52,9 @@ public class VenueService {
             venue.getCapacity(),
             venue.getPricePerDay()
         );
+
+        String savedImagePath = FileUtils.saveUploadedImage(venue.getImagePath());
+        venue.setImagePath(savedImagePath);
 
         return venueDAO.updateVenue(venue);
     }
@@ -71,6 +77,11 @@ public class VenueService {
 
     public List<Venue> getAllVenues() {
         return venueDAO.getAllVenues();
+    }
+
+    // New method to retrieve only AVAILABLE venues for user view
+    public List<Venue> getAvailableVenues() {
+        return venueDAO.getAvailableVenues();
     }
 
     public List<Venue> getRecommendedVenues() {

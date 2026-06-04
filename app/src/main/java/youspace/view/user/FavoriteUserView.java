@@ -127,6 +127,6 @@ public class FavoriteUserView {
                 ViewUtil.createScrollable(mainContent)
         );
 
-        return new Scene(root, 1280, 720);
+        return new Scene(root, 1280, 760);
     }
 }

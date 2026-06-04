@@ -6,13 +6,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import youspace.config.DatabaseConfig;
 import youspace.enums.VenueCategory;
 import youspace.enums.VenueStatus;
 import youspace.models.Venue;
-import java.util.Comparator;
 
 public class VenueDAO {
 
@@ -20,7 +20,7 @@ public class VenueDAO {
         String sql = """
             INSERT INTO venues 
             (name, description, category, capacity, price_per_day, image_path, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?);
         """;
 
         try (
@@ -131,6 +131,24 @@ public class VenueDAO {
     }
     // ------------------------------------------
 
+    public List<Venue> getAvailableVenues() {
+        List<Venue> venues = new ArrayList<>();
+        String sql = "SELECT * FROM venues WHERE status = ? ORDER BY id DESC;";
+        try (
+            Connection conn = DatabaseConfig.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)
+        ) {
+            stmt.setString(1, VenueStatus.AVAILABLE.name());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                venues.add(mapResultSetToVenue(rs));
+            }
+        } catch (SQLException e) {
+            System.out.println("Gagal mengambil venue tersedia: " + e.getMessage());
+        }
+        return venues;
+    }
+
     public List<Venue> getAllVenues() {
         List<Venue> venues = new ArrayList<>();
         String sql = "SELECT * FROM venues ORDER BY id DESC;";
@@ -151,10 +169,10 @@ public class VenueDAO {
         return venues;
     }
 
+
     public List<Venue> getRecommendedVenues() {
 
-        List<Venue> venues =   
-        getAllVenues();
+        List<Venue> venues = getAllVenues();
 
         venues.sort(
             Comparator.comparingDouble(

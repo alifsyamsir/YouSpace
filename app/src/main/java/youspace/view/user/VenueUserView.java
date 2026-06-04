@@ -20,6 +20,8 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 import youspace.enums.VenueCategory;
+import youspace.enums.VenueStatus;
+
 
 import youspace.models.Venue;
 
@@ -179,7 +181,7 @@ public class VenueUserView {
         if (currentCategory.equals("Semua")) {
 
             venues =
-                    venueService.getAllVenues();
+                    venueService.getAvailableVenues();
 
         } else {
 
@@ -194,6 +196,9 @@ public class VenueUserView {
             venues =
                     venueService.getVenuesByCategory(category);
         }
+
+        // Filter out unavailable venues
+        venues.removeIf(v -> v.getStatus() != VenueStatus.AVAILABLE);
 
         int col = 0;
         int row = 0;
@@ -353,6 +358,8 @@ public class VenueUserView {
                 )
         );
 
+        name.setStyle("-fx-text-fill: #183B63;");
+
         Label category =
                 new Label(
                         formatCategory(
@@ -414,6 +421,8 @@ public class VenueUserView {
                         18
                 )
         );
+
+        lblPrice.setStyle("-fx-text-fill: #1F2937;");
 
         Region spacer =
                 new Region();

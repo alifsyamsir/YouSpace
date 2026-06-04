@@ -697,8 +697,8 @@ public class BookingAdminView {
 
         return new Scene(
                 root,
-                1400,
-                850
+                1280,
+                760
         );
     }
 

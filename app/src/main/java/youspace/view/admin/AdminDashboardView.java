@@ -666,8 +666,8 @@ public class AdminDashboardView {
 
         return new Scene(
                 root,
-                1400,
-                850
+                1280,
+                760
         );
     }
 

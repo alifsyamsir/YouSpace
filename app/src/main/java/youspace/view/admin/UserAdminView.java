@@ -179,7 +179,7 @@ public class UserAdminView {
         // Load data pertama kali saat halaman dibuka
         refreshTable("");
         root.setCenter(mainContent);
-        return new Scene(root, 960, 650);
+        return new Scene(root, 1280, 760);
     }
 
     // Fungsi pembantu untuk memuat ulang data ke tabel secara dinamis
